@@ -63,24 +63,36 @@ tbody tr:last-child{border-bottom:none}
   </div>
 
   <div id="results" style="display:none">
-    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem">
-      <div style="border-radius:10px;padding:12px 14px;background:var(--color-background-secondary,#f5f5f5)">
-        <p style="font-size:11px;color:var(--color-text-secondary,#888);margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Unique tables</p>
-        <p id="sTotal" style="font-size:24px;font-weight:500;color:var(--color-text-primary,#111);margin:0"></p>
-      </div>
-      <div style="border-radius:10px;padding:12px 14px;background:#E6F1FB">
-        <p style="font-size:11px;color:#185FA5;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Select</p>
-        <p id="sSel" style="font-size:24px;font-weight:500;color:#0C447C;margin:0"></p>
-      </div>
-      <div style="border-radius:10px;padding:12px 14px;background:#EAF3DE">
-        <p style="font-size:11px;color:#3B6D11;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Insert</p>
-        <p id="sIns" style="font-size:24px;font-weight:500;color:#27500A;margin:0"></p>
-      </div>
-      <div style="border-radius:10px;padding:12px 14px;background:#FAEEDA">
-        <p style="font-size:11px;color:#854F0B;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Update / Delete</p>
-        <p id="sOth" style="font-size:24px;font-weight:500;color:#633806;margin:0"></p>
-      </div>
-    </div>
+	<div style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 1.25rem;">
+	  
+	  <div style="border-radius:10px; padding:12px 14px; background:var(--color-background-secondary,#f5f5f5)">
+		<p style="font-size:11px; color:var(--color-text-secondary,#888); margin:0 0 4px; text-transform:uppercase; letter-spacing:.05em">Unique tables</p>
+		<p id="sTotal" style="font-size:24px; font-weight:500; color:var(--color-text-primary,#111); margin:0"></p>
+	  </div>
+
+	  <div style="display:grid; grid-template-columns:repeat(4, minmax(0,1fr)); gap:10px;">
+		<div style="border-radius:10px; padding:12px 14px; background:#E6F1FB">
+		  <p style="font-size:11px; color:#185FA5; margin:0 0 4px; text-transform:uppercase; letter-spacing:.05em">Select</p>
+		  <p id="sSel" style="font-size:24px; font-weight:500; color:#0C447C; margin:0"></p>
+		</div>
+
+		<div style="border-radius:10px; padding:12px 14px; background:#EAF3DE">
+		  <p style="font-size:11px; color:#3B6D11; margin:0 0 4px; text-transform:uppercase; letter-spacing:.05em">Insert</p>
+		  <p id="sIns" style="font-size:24px; font-weight:500; color:#27500A; margin:0"></p>
+		</div>
+
+		<div style="border-radius:10px; padding:12px 14px; background:#FAEEDA">
+		  <p style="font-size:11px; color:#854F0B; margin:0 0 4px; text-transform:uppercase; letter-spacing:.05em">Update</p>
+		  <p id="sUpdate" style="font-size:24px; font-weight:500; color:#633806; margin:0"></p>
+		</div>
+
+		<div style="border-radius:10px; padding:12px 14px; background:#FCEBEB">
+		  <p style="font-size:11px; color:#791F1F; margin:0 0 4px; text-transform:uppercase; letter-spacing:.05em">Delete</p>
+		  <p id="sDelete" style="font-size:24px; font-weight:500; color:#791F1F; margin:0"></p>
+		</div>
+	  </div>
+
+	</div>
 
     <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
       <span style="font-size:11px;font-weight:500;color:var(--color-text-secondary,#888);text-transform:uppercase;letter-spacing:.05em;margin-right:2px">Filter</span>
@@ -199,7 +211,8 @@ function showResults(){
   document.getElementById('sTotal').textContent=uniq;
   document.getElementById('sSel').textContent=cnt('SELECT');
   document.getElementById('sIns').textContent=cnt('INSERT');
-  document.getElementById('sOth').textContent=cnt('UPDATE')+cnt('DELETE');
+  document.getElementById('sUpdate').textContent=cnt('UPDATE');
+  document.getElementById('sDelete').textContent=cnt('DELETE');
   document.getElementById('results').style.display='block';
   document.getElementById('exportBtn').style.display='flex';
   renderTable(allRows);
