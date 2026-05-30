@@ -1,0 +1,240 @@
+
+<script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+<h2 class="sr-only">SQL table extractor — upload a log file to extract unique table names from SELECT INSERT UPDATE DELETE statements and export as CSV</h2>
+<style>
+*{box-sizing:border-box;font-family:var(--font-sans,system-ui,sans-serif)}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#dropzone{transition:border-color .15s,background .15s;cursor:pointer}
+#dropzone.drag{border-color:#378ADD!important;background:#E6F1FB!important}
+.xbtn{transition:opacity .12s;cursor:pointer}
+.xbtn:hover{opacity:.75}
+.pill{display:inline-flex;padding:2px 9px;border-radius:99px;font-size:12px;font-weight:500;background:var(--color-background-secondary,#f5f5f5);color:var(--color-text-primary,#111);border:0.5px solid var(--color-border-secondary,#ddd);font-family:monospace;margin:2px}
+.op-chip{display:inline-flex;align-items:center;padding:3px 10px;border-radius:99px;font-size:11px;font-weight:500;white-space:nowrap;cursor:pointer}
+tbody tr{border-bottom:0.5px solid var(--color-border-tertiary,#eee)}
+tbody tr:last-child{border-bottom:none}
+</style>
+
+<div style="padding:1.5rem 0">
+
+  <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;flex-wrap:wrap;gap:10px">
+    <div style="display:flex;align-items:center;gap:12px">
+      <div style="width:36px;height:36px;border-radius:10px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18"/><path d="M3 15h18"/><path d="M9 3v18"/></svg>
+      </div>
+      <div>
+        <p style="font-size:15px;font-weight:500;color:var(--color-text-primary,#111);margin:0;line-height:1.3">SQL table extractor</p>
+        <p style="font-size:12px;color:var(--color-text-secondary,#666);margin:0;margin-top:1px">Upload a log file · extract unique table names · export CSV</p>
+      </div>
+    </div>
+    <button onclick="downloadSample()" class="xbtn" style="display:flex;align-items:center;gap:6px;padding:7px 13px;border-radius:8px;border:0.5px solid var(--color-border-secondary,#ddd);background:var(--color-background-primary,#fff);color:var(--color-text-primary,#111);font-size:12px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Download sample log
+    </button>
+  </div>
+
+  <div id="dropzone" onclick="document.getElementById('fileInput').click()" ondragover="dz(event,'on')" ondragleave="dz(event,'off')" ondrop="dz(event,'drop')"
+    style="border:1.5px dashed var(--color-border-secondary,#ccc);border-radius:14px;padding:2.5rem 1rem;text-align:center;background:var(--color-background-secondary,#fafafa);margin-bottom:1.25rem">
+    <div style="width:44px;height:44px;border-radius:12px;background:#E6F1FB;display:flex;align-items:center;justify-content:center;margin:0 auto 12px">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#185FA5" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 21V8"/><path d="m7 13 5-5 5 5"/><path d="M5 21h14"/></svg>
+    </div>
+    <p style="font-size:14px;font-weight:500;color:var(--color-text-primary,#111);margin:0 0 4px">Drop your log file here</p>
+    <p style="font-size:12px;color:var(--color-text-secondary,#666);margin:0 0 14px">or click to browse — .log .txt .sql files supported</p>
+    <button onclick="event.stopPropagation();loadSampleIntoTool()" class="xbtn" style="display:inline-flex;align-items:center;gap:5px;padding:6px 14px;border-radius:8px;border:0.5px solid #85B7EB;background:#E6F1FB;color:#0C447C;font-size:12px;font-weight:500">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#0C447C" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+      Try with sample file
+    </button>
+    <input type="file" id="fileInput" accept=".log,.txt,.sql,.out" style="display:none" onchange="loadFile(this.files[0])">
+  </div>
+
+  <div id="fileBar" style="display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;border:0.5px solid var(--color-border-tertiary,#eee);background:var(--color-background-primary,#fff);margin-bottom:1.25rem">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary,#999)" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+    <div style="flex:1;min-width:0">
+      <p id="fileName" style="font-size:13px;font-weight:500;color:var(--color-text-primary,#111);margin:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap"></p>
+      <p id="fileMeta" style="font-size:11px;color:var(--color-text-secondary,#888);margin:0"></p>
+    </div>
+    <button onclick="exportCSV()" id="exportBtn" class="xbtn" style="display:none;align-items:center;gap:6px;padding:6px 13px;border-radius:8px;border:none;background:var(--color-text-primary,#111);color:var(--color-background-primary,#fff);font-size:12px;font-weight:500">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v13"/><path d="m7 11 5 5 5-5"/><path d="M5 21h14"/></svg>
+      Export CSV
+    </button>
+    <button onclick="clearAll()" class="xbtn" style="display:flex;align-items:center;gap:5px;padding:6px 12px;border-radius:8px;border:0.5px solid var(--color-border-secondary,#ddd);background:transparent;color:var(--color-text-secondary,#888);font-size:12px">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      Clear
+    </button>
+  </div>
+
+  <div id="results" style="display:none">
+    <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-bottom:1.25rem">
+      <div style="border-radius:10px;padding:12px 14px;background:var(--color-background-secondary,#f5f5f5)">
+        <p style="font-size:11px;color:var(--color-text-secondary,#888);margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Unique tables</p>
+        <p id="sTotal" style="font-size:24px;font-weight:500;color:var(--color-text-primary,#111);margin:0"></p>
+      </div>
+      <div style="border-radius:10px;padding:12px 14px;background:#E6F1FB">
+        <p style="font-size:11px;color:#185FA5;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Select</p>
+        <p id="sSel" style="font-size:24px;font-weight:500;color:#0C447C;margin:0"></p>
+      </div>
+      <div style="border-radius:10px;padding:12px 14px;background:#EAF3DE">
+        <p style="font-size:11px;color:#3B6D11;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Insert</p>
+        <p id="sIns" style="font-size:24px;font-weight:500;color:#27500A;margin:0"></p>
+      </div>
+      <div style="border-radius:10px;padding:12px 14px;background:#FAEEDA">
+        <p style="font-size:11px;color:#854F0B;margin:0 0 4px;text-transform:uppercase;letter-spacing:.05em">Update / Delete</p>
+        <p id="sOth" style="font-size:24px;font-weight:500;color:#633806;margin:0"></p>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:6px;flex-wrap:wrap;margin-bottom:12px">
+      <span style="font-size:11px;font-weight:500;color:var(--color-text-secondary,#888);text-transform:uppercase;letter-spacing:.05em;margin-right:2px">Filter</span>
+      <button onclick="filter('ALL')" data-op="ALL" class="fbtn op-chip" style="background:var(--color-background-secondary,#f5f5f5);color:var(--color-text-primary,#111);border:0.5px solid var(--color-border-secondary,#ccc);outline:2px solid var(--color-border-primary,#999)">All</button>
+      <button onclick="filter('SELECT')" data-op="SELECT" class="fbtn op-chip" style="background:#E6F1FB;color:#0C447C;border:0.5px solid #85B7EB">Select</button>
+      <button onclick="filter('INSERT')" data-op="INSERT" class="fbtn op-chip" style="background:#EAF3DE;color:#27500A;border:0.5px solid #97C459">Insert</button>
+      <button onclick="filter('UPDATE')" data-op="UPDATE" class="fbtn op-chip" style="background:#FAEEDA;color:#633806;border:0.5px solid #EF9F27">Update</button>
+      <button onclick="filter('DELETE')" data-op="DELETE" class="fbtn op-chip" style="background:#FCEBEB;color:#791f1f;border:0.5px solid #F09595">Delete</button>
+    </div>
+
+    <div style="border-radius:12px;border:0.5px solid var(--color-border-tertiary,#eee);overflow:hidden">
+      <table id="tbl" style="width:100%;border-collapse:collapse;font-size:13px;table-layout:fixed">
+        <thead>
+          <tr style="background:var(--color-background-secondary,#fafafa)">
+            <th style="width:120px;padding:10px 16px;text-align:left;font-size:11px;font-weight:500;color:var(--color-text-secondary,#888);border-bottom:0.5px solid var(--color-border-tertiary,#eee);text-transform:uppercase;letter-spacing:.05em">Operation</th>
+            <th style="padding:10px 16px;text-align:left;font-size:11px;font-weight:500;color:var(--color-text-secondary,#888);border-bottom:0.5px solid var(--color-border-tertiary,#eee);text-transform:uppercase;letter-spacing:.05em">Table names</th>
+            <th style="width:72px;padding:10px 16px;text-align:right;font-size:11px;font-weight:500;color:var(--color-text-secondary,#888);border-bottom:0.5px solid var(--color-border-tertiary,#eee);text-transform:uppercase;letter-spacing:.05em">Count</th>
+          </tr>
+        </thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+
+    <div id="toast" style="display:none;align-items:center;gap:8px;margin-top:10px;padding:10px 14px;border-radius:10px;background:#EAF3DE;color:#27500A;font-size:12px;font-weight:500">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#27500A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="9 12 11 14 15 10"/></svg>
+      <span id="toastMsg"></span>
+    </div>
+  </div>
+</div>
+
+<script>
+const SAMPLE=`=============================================================
+  APPLICATION LOG - DB2 QUERY LOG
+  System  : PROD-DB2-LUW
+  Date    : 2026-05-30
+=============================================================
+[2026-05-30 08:01:12] [INFO] Connection established - user: APP_USER db: PRODDB
+[2026-05-30 08:01:15] [SQL] SELECT EMPNO, FIRSTNAME, LASTNAME, SALARY FROM TBL_EMPLOYEES WHERE DEPTNO = '10' AND STATUS = 'A'
+[2026-05-30 08:01:18] [SQL] SELECT D.DEPTNO, D.DEPTNAME, E.LASTNAME FROM TBL_DEPARTMENTS D INNER JOIN TBL_EMPLOYEES E ON D.MGRNO = E.EMPNO
+[2026-05-30 08:02:05] [SQL] INSERT INTO TBL_AUDIT_LOG (LOG_ID, ACTION, USER_ID, LOG_DATE) VALUES (SEQ_AUDIT.NEXTVAL, 'LOGIN', 'APP_USER', CURRENT_TIMESTAMP)
+[2026-05-30 08:02:44] [SQL] SELECT ORDER_ID, CUSTOMER_ID, ORDER_DATE, TOTAL_AMT FROM TBL_ORDERS WHERE ORDER_DATE >= '2026-01-01' ORDER BY ORDER_DATE DESC
+[2026-05-30 08:03:10] [SQL] SELECT P.PRODUCT_ID, P.PRODUCT_NAME, P.UNIT_PRICE, C.CATEGORY_NAME FROM TBL_PRODUCTS P LEFT JOIN TBL_CATEGORIES C ON P.CATEGORY_ID = C.CATEGORY_ID WHERE P.ACTIVE_FLAG = 'Y'
+[2026-05-30 08:03:55] [SQL] UPDATE TBL_EMPLOYEES SET SALARY = SALARY * 1.05, LAST_UPDATED = CURRENT_TIMESTAMP WHERE DEPTNO = '20' AND RATING = 'A'
+[2026-05-30 08:04:22] [INFO] Batch process started - ID: BATCH_00421
+[2026-05-30 08:04:25] [SQL] SELECT INV_ID, PRODUCT_ID, WAREHOUSE_ID, QTY_ON_HAND FROM TBL_INVENTORY WHERE QTY_ON_HAND < REORDER_LEVEL
+[2026-05-30 08:04:30] [SQL] INSERT INTO TBL_REORDER_REQUESTS (REQ_ID, PRODUCT_ID, REQ_QTY, REQ_DATE, STATUS) VALUES (SEQ_REQ.NEXTVAL, ?, ?, CURRENT_DATE, 'PENDING')
+[2026-05-30 08:05:01] [SQL] SELECT C.CUSTOMER_ID, C.FULL_NAME, C.EMAIL, A.CITY, A.COUNTRY FROM TBL_CUSTOMERS C INNER JOIN TBL_ADDRESSES A ON C.ADDRESS_ID = A.ADDRESS_ID LEFT JOIN TBL_LOYALTY_POINTS LP ON C.CUSTOMER_ID = LP.CUSTOMER_ID WHERE C.ACTIVE = 1
+[2026-05-30 08:05:45] [SQL] DELETE FROM TBL_SESSION_TOKENS WHERE EXPIRY_DATE < CURRENT_TIMESTAMP
+[2026-05-30 08:06:10] [SQL] UPDATE TBL_ORDERS SET STATUS = 'SHIPPED', SHIP_DATE = CURRENT_DATE WHERE STATUS = 'APPROVED' AND PAYMENT_STATUS = 'PAID'
+[2026-05-30 08:06:33] [SQL] INSERT INTO TBL_SHIPMENTS (SHIP_ID, ORDER_ID, CARRIER, TRACKING_NO, SHIP_DATE) VALUES (SEQ_SHIP.NEXTVAL, ?, ?, ?, CURRENT_DATE)
+[2026-05-30 08:07:00] [SQL] SELECT T.TXN_ID, T.ACCOUNT_ID, T.AMOUNT, T.TXN_TYPE, T.TXN_DATE FROM TBL_TRANSACTIONS T INNER JOIN TBL_ACCOUNTS A ON T.ACCOUNT_ID = A.ACCOUNT_ID WHERE T.TXN_DATE BETWEEN '2026-05-01' AND '2026-05-30'
+[2026-05-30 08:07:45] [SQL] SELECT COUNT(*) AS TOTAL_USERS FROM TBL_USERS WHERE LAST_LOGIN > CURRENT_DATE - 30 DAYS
+[2026-05-30 08:08:12] [SQL] DELETE FROM TBL_AUDIT_LOG WHERE LOG_DATE < CURRENT_DATE - 90 DAYS
+[2026-05-30 08:08:50] [SQL] UPDATE TBL_PRODUCTS SET UNIT_PRICE = ?, LAST_MODIFIED = CURRENT_TIMESTAMP WHERE PRODUCT_ID = ?
+[2026-05-30 08:09:15] [SQL] SELECT R.ROLE_ID, R.ROLE_NAME, U.USERNAME FROM TBL_ROLES R INNER JOIN TBL_USER_ROLES UR ON R.ROLE_ID = UR.ROLE_ID INNER JOIN TBL_USERS U ON UR.USER_ID = U.USER_ID WHERE R.ACTIVE = 'Y'
+[2026-05-30 08:09:58] [SQL] INSERT INTO TBL_NOTIFICATIONS (NOTIF_ID, USER_ID, MESSAGE, CREATED_AT, IS_READ) VALUES (SEQ_NOTIF.NEXTVAL, ?, ?, CURRENT_TIMESTAMP, 'N')
+[2026-05-30 08:10:30] [SQL] SELECT S.SUPPLIER_ID, S.SUPPLIER_NAME, P.PRODUCT_NAME FROM TBL_SUPPLIERS S INNER JOIN TBL_SUPPLIER_PRODUCTS SP ON S.SUPPLIER_ID = SP.SUPPLIER_ID INNER JOIN TBL_PRODUCTS P ON SP.PRODUCT_ID = P.PRODUCT_ID
+[2026-05-30 08:11:05] [SQL] UPDATE TBL_INVENTORY SET QTY_ON_HAND = QTY_ON_HAND + ?, LAST_RESTOCKED = CURRENT_DATE WHERE PRODUCT_ID = ? AND WAREHOUSE_ID = ?
+[2026-05-30 08:11:40] [SQL] DELETE FROM TBL_REORDER_REQUESTS WHERE STATUS = 'COMPLETED' AND REQ_DATE < CURRENT_DATE - 30 DAYS
+[2026-05-30 08:12:15] [SQL] SELECT * FROM TBL_CONFIG WHERE CONFIG_KEY IN ('MAX_RETRY', 'TIMEOUT_SEC', 'LOG_LEVEL')
+[2026-05-30 08:12:50] [SQL] INSERT INTO TBL_AUDIT_LOG (LOG_ID, ACTION, USER_ID, LOG_DATE) VALUES (SEQ_AUDIT.NEXTVAL, 'BATCH_COMPLETE', 'SYSTEM', CURRENT_TIMESTAMP)
+[2026-05-30 08:13:20] [INFO] Connection closed - user: APP_USER - session duration: 728s
+=============================================================  END OF LOG  =============================================================`;
+
+const opStyle={
+  SELECT:{bg:'#E6F1FB',tc:'#0C447C',bc:'#85B7EB'},
+  INSERT:{bg:'#EAF3DE',tc:'#27500A',bc:'#97C459'},
+  UPDATE:{bg:'#FAEEDA',tc:'#633806',bc:'#EF9F27'},
+  DELETE:{bg:'#FCEBEB',tc:'#791f1f',bc:'#F09595'}
+};
+let allRows=[];
+
+function dz(e,t){
+  e.preventDefault();
+  const el=document.getElementById('dropzone');
+  if(t==='on')el.classList.add('drag');
+  else if(t==='off')el.classList.remove('drag');
+  else{el.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)loadFile(f)}
+}
+function loadFile(f){
+  if(!f)return;
+  const r=new FileReader();
+  r.onload=e=>{setBar(f.name,f.size);parse(e.target.result)};
+  r.readAsText(f);
+}
+function loadSampleIntoTool(){setBar('sample_sql_log.txt',new Blob([SAMPLE]).size);parse(SAMPLE)}
+function setBar(name,size){
+  document.getElementById('fileName').textContent=name;
+  document.getElementById('fileMeta').textContent=fmt(size)+' · '+name.split('.').pop().toUpperCase();
+  document.getElementById('fileBar').style.display='flex';
+}
+function fmt(b){if(b<1024)return b+'B';if(b<1048576)return Math.round(b/1024)+'KB';return(b/1048576).toFixed(1)+'MB'}
+
+function parse(text){
+  const ops={SELECT:new Set(),INSERT:new Set(),UPDATE:new Set(),DELETE:new Set()};
+  const pats=[
+    {op:'SELECT',re:/\bSELECT\b[\s\S]*?\bFROM\b\s+([\w$.#"[\]]+(?:\s*,\s*[\w$.#"[\]]+)*)/gi},
+    {op:'INSERT',re:/\bINSERT\s+(?:INTO\s+)?([\w$.#"[\]]+)/gi},
+    {op:'UPDATE',re:/\bUPDATE\s+([\w$.#"[\]]+)/gi},
+    {op:'DELETE',re:/\bDELETE\s+(?:FROM\s+)?([\w$.#"[\]]+)/gi},
+  ];
+  const joinRe=/\b(?:INNER|LEFT|RIGHT|FULL|CROSS|OUTER)?\s*JOIN\s+([\w$.#"[\]]+)/gi;
+  text.split('\n').forEach(line=>{
+    pats.forEach(({op,re})=>{re.lastIndex=0;let m;while((m=re.exec(line))!==null)m[1].split(',').map(s=>clean(s)).filter(Boolean).forEach(t=>ops[op].add(t))});
+    if(/SELECT|FROM/i.test(line)){joinRe.lastIndex=0;let m;while((m=joinRe.exec(line))!==null){const t=clean(m[1]);if(t)ops['SELECT'].add(t)}}
+  });
+  allRows=[];
+  ['SELECT','INSERT','UPDATE','DELETE'].forEach(op=>{const tables=[...ops[op]].sort();if(tables.length)allRows.push({op,tables})});
+  showResults();
+}
+function clean(s){return s.trim().replace(/^["'\[`]|["'\]`]$/g,'').replace(/\s+.*/,'').toUpperCase()}
+
+function showResults(){
+  const uniq=new Set(allRows.flatMap(r=>r.tables)).size;
+  const cnt=op=>allRows.find(r=>r.op===op)?.tables.length||0;
+  document.getElementById('sTotal').textContent=uniq;
+  document.getElementById('sSel').textContent=cnt('SELECT');
+  document.getElementById('sIns').textContent=cnt('INSERT');
+  document.getElementById('sOth').textContent=cnt('UPDATE')+cnt('DELETE');
+  document.getElementById('results').style.display='block';
+  document.getElementById('exportBtn').style.display='flex';
+  renderTable(allRows);
+}
+
+function renderTable(rows){
+  const body=document.getElementById('tbody');
+  if(!rows.length){body.innerHTML=`<tr><td colspan="3" style="padding:2rem;text-align:center;color:var(--color-text-secondary,#888);font-size:13px">No SQL statements found.</td></tr>`;return}
+  body.innerHTML=rows.map(({op,tables})=>{
+    const s=opStyle[op];
+    const badge=`<span class="op-chip" style="background:${s.bg};color:${s.tc};border:0.5px solid ${s.bc}">${op}</span>`;
+    const pills=tables.map(t=>`<span class="pill">${t}</span>`).join('');
+    return`<tr data-op="${op}"><td style="padding:12px 16px;vertical-align:top">${badge}</td><td style="padding:10px 16px;line-height:2.2">${pills}</td><td style="padding:12px 16px;text-align:right;font-size:13px;font-weight:500;color:var(--color-text-secondary,#888);vertical-align:top">${tables.length}</td></tr>`;
+  }).join('');
+}
+
+function filter(op){
+  document.querySelectorAll('.fbtn').forEach(b=>{const a=b.dataset.op===op;b.style.outline=a?'2px solid var(--color-border-primary,#999)':'none';b.style.fontWeight=a?'500':'400'});
+  renderTable(op==='ALL'?allRows:allRows.filter(r=>r.op===op));
+}
+
+function exportCSV(){
+  const visibleOp=document.querySelector('.fbtn[style*="2px solid"]')?.dataset.op||'ALL';
+  const rows=visibleOp==='ALL'?allRows:allRows.filter(r=>r.op===visibleOp);
+  const lines=['Operation,Table Names,Count'];
+  rows.forEach(({op,tables})=>{
+    const tableCell=`"${tables.join(', ')}"`;
+    lines.push(`${op},${tableCell},${tables.length}`);
+  });
+  dl('sql_tables.csv',lines.join('\n'),'text/csv');
+  toast('sql_tables.csv downloaded');
+}
+
+function downloadSample(){dl('sample_sql_log.txt',SAMPLE,'text/plain');toast('sample_sql_log.txt downloaded')}
+function dl(name,content,mime){const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([content],{type:mime}));a.download=name;a.click();URL.revokeObjectURL(a.href)}
+function toast(msg){const t=document.getElementById('toast');document.getElementById('toastMsg').textContent=msg;t.style.display='flex';setTimeout(()=>t.style.display='none',3000)}
+function clearAll(){allRows=[];document.getElementById('fileBar').style.display='none';document.getElementById('results').style.display='none';document.getElementById('fileInput').value='';document.getElementById('exportBtn').style.display='none'}
+</script>
